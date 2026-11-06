@@ -1,0 +1,591 @@
+{
+  "wave": "01-eligibility-example",
+  "seam": "CLMADJ00 -> CALL 'ELGB100' USING ELGCOMM",
+  "note": "Illustrative example. Program names, rules and stages are made up to show the model.",
+  "units": [
+    {
+      "program": "ELGB100",
+      "paragraph": "0000-MAINLINE",
+      "rule": "Entry point. Receives ELGCOMM from CLMADJ00 and runs the steps below in order.",
+      "target": "api/eligibilityHandler.ts",
+      "layers": [
+        "L0"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "1000-INIT-COMMAREA",
+      "rule": "Clears the response area to spaces and zero before any work.",
+      "target": "api/initResponse.ts",
+      "layers": [
+        "L0"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "1100-VALIDATE-REQUEST",
+      "rule": "Rejects the call with code E1 when DOS is not a valid CYYMMDD date or the member key is blank.",
+      "target": "api/validateRequest.ts",
+      "layers": [
+        "L6"
+      ],
+      "stage": 4,
+      "ledgerRules": [
+        "L-012"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "2000-CALL-MEMBER-LOOKUP",
+      "rule": "Calls ELGB110 and stops with code M1 when no member is found.",
+      "target": "api/eligibilityHandler.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "3000-CALL-SPAN-RESOLVER",
+      "rule": "Calls ELGB120 to pick the coverage span for the date of service.",
+      "target": "api/eligibilityHandler.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "4000-CALL-PLAN-ATTACH",
+      "rule": "Calls ELGB130 to attach plan package and network tier to the chosen span.",
+      "target": "api/eligibilityHandler.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "5000-CALL-RULES",
+      "rule": "Runs retro-term, grace and age-out rules in that fixed order.",
+      "target": "api/eligibilityHandler.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 2,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "8000-BUILD-RESPONSE",
+      "rule": "Calls ELGB900 and moves the result back into ELGCOMM.",
+      "target": "api/eligibilityHandler.ts",
+      "layers": [
+        "L0"
+      ],
+      "stage": 1
+    },
+    {
+      "program": "ELGB100",
+      "paragraph": "9000-ABEND-HANDLER",
+      "rule": "On SQL or file error, sets code X9 and writes the key to ELGHIST.",
+      "target": "api/errors.ts",
+      "layers": [
+        "L3"
+      ],
+      "stage": 1
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "0000-MAIN",
+      "rule": "Chooses lookup by member ID or by alternate ID, based on REQ-KEY-TYPE.",
+      "target": "member/resolveMember.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "1000-LOOKUP-BY-MBR-ID",
+      "rule": "Reads MBR_MASTER by member ID and two-digit dependent suffix.",
+      "target": "member/resolveMember.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "1100-XREF-ALT-ID",
+      "rule": "Turns the card ID on the claim into a member ID through the MBRXREF keyed file.",
+      "target": "adapters/memberXref.ts",
+      "layers": [
+        "L3"
+      ],
+      "stage": 1,
+      "heldBy": [
+        "R-02"
+      ]
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "1200-DEPENDENT-SUFFIX",
+      "rule": "Suffix 01 is the subscriber; 02 to 19 are dependents in enrollment order.",
+      "target": "member/dependentSuffix.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "1300-SSN-FALLBACK",
+      "rule": "When the card ID misses, retries by masked SSN plus DOB. Only for paper claims.",
+      "target": "member/ssnFallback.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "1400-MERGED-MEMBER-CHAIN",
+      "rule": "Follows up to 5 merge pointers when a member record was merged into another.",
+      "target": "member/mergeChain.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB110",
+      "paragraph": "9000-NOT-FOUND",
+      "rule": "Returns M1 and the last key tried.",
+      "target": "member/resolveMember.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 2,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "0000-MAIN",
+      "rule": "Loads all spans for the member, orders them, then picks the one covering the DOS.",
+      "target": "coverage/resolveSpan.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "1000-OPEN-SPAN-CURSOR",
+      "rule": "Declares the cursor over MBR_COVG_SPAN with WITH UR (uncommitted read).",
+      "target": "adapters/db2Spans.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 3,
+      "ledgerRules": [
+        "L-016"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "1100-FETCH-SPANS",
+      "rule": "Fetches up to 40 spans into a working-storage table.",
+      "target": "adapters/db2Spans.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 1,
+      "heldBy": [
+        "R-01"
+      ]
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "2000-SORT-SPANS",
+      "rule": "Sorts by effective date, then plan code. Plan code order follows EBCDIC: letters before digits.",
+      "target": "coverage/sortSpans.ts",
+      "layers": [
+        "L6"
+      ],
+      "stage": 4,
+      "ledgerRules": [
+        "L-013"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "2100-MERGE-SPANS",
+      "rule": "Joins back-to-back spans on the same plan into one span.",
+      "target": "coverage/mergeSpans.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "2200-GAP-CHECK",
+      "rule": "Flags a gap of more than 63 days between spans for creditable-coverage reporting.",
+      "target": "coverage/gapCheck.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "2300-OPEN-END-DATE",
+      "rule": "Treats a term date of 9999999 or 99991231 as open-ended.",
+      "target": "coverage/dates.ts",
+      "layers": [
+        "L6"
+      ],
+      "stage": 3,
+      "ledgerRules": [
+        "L-012"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "3000-FIND-DOS-SPAN",
+      "rule": "Takes the first span in sorted order where effective ≤ DOS ≤ term.",
+      "target": "coverage/findSpanForDos.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "ledgerRules": [
+        "L-017"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "3100-REINSTATEMENT",
+      "rule": "A reinstated span overrides a termed span with the same effective date.",
+      "target": "coverage/reinstatement.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 2,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "3200-VOID-SPAN-SKIP",
+      "rule": "Skips spans with status V (voided by 834 correction).",
+      "target": "coverage/findSpanForDos.ts",
+      "layers": [
+        "L4"
+      ],
+      "stage": 2,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "4000-CLOSE-CURSOR",
+      "rule": "Closes the cursor.",
+      "target": "adapters/db2Spans.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 1
+    },
+    {
+      "program": "ELGB120",
+      "paragraph": "9000-SQL-ERROR",
+      "rule": "Maps SQLCODE to X9 and logs it.",
+      "target": "adapters/db2Spans.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 1
+    },
+    {
+      "program": "ELGB130",
+      "paragraph": "0000-MAIN",
+      "rule": "Attaches group, plan package and network tier to the chosen span.",
+      "target": "plan/attachPlan.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB130",
+      "paragraph": "1000-GRP-PLAN-XREF",
+      "rule": "Finds the group's plan row valid on the DOS.",
+      "target": "plan/attachPlan.ts",
+      "layers": [
+        "L2"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB130",
+      "paragraph": "1100-PLAN-PKG-LOOKUP",
+      "rule": "Looks up the benefit package code for the plan.",
+      "target": "plan/attachPlan.ts",
+      "layers": [
+        "L5"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB130",
+      "paragraph": "2000-PRODUCT-LINE-CHECK",
+      "rule": "Sets product line: C commercial, X exchange, M Medicare Advantage.",
+      "target": "plan/productLine.ts",
+      "layers": [
+        "L5"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB130",
+      "paragraph": "2100-NETWORK-TIER",
+      "rule": "Sets network tier from the package; HMO packages require a PCP on file.",
+      "target": "plan/networkTier.ts",
+      "layers": [
+        "L5"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB130",
+      "paragraph": "9000-PLAN-NOT-FOUND",
+      "rule": "Returns P1 when no plan row is valid on the DOS.",
+      "target": "plan/attachPlan.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 2,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "0000-MAIN",
+      "rule": "Runs only when the chosen span was termed or no span covers the DOS.",
+      "target": "rules/retroTerm.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "1000-DETECT-RETRO-TERM",
+      "rule": "A term is retroactive when it was posted after its own term date.",
+      "target": "rules/retroTerm.ts",
+      "layers": [
+        "L4"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "1100-POSTED-VS-EFFECTIVE",
+      "rule": "Ignores a retro term posted within 3 business days. Not in any spec; waiting on SME.",
+      "target": "rules/retroTerm.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 1,
+      "heldBy": [
+        "R-03"
+      ]
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "2000-GRACE-ELIGIBLE",
+      "rule": "Grace applies only to product line X with an APTC subsidy flag.",
+      "target": "rules/grace.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "2100-APTC-GRACE-MONTH",
+      "rule": "Counts grace months from paid-through date: month 1 pays, months 2 and 3 pend.",
+      "target": "rules/grace.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "2200-PAID-THRU-CALC",
+      "rule": "Derives paid-through date from COMP-3 premium balance and monthly rate.",
+      "target": "rules/paidThrough.ts",
+      "layers": [
+        "L6"
+      ],
+      "stage": 3,
+      "ledgerRules": [
+        "L-011"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "3000-PEND-OR-DENY",
+      "rule": "Pend with reason G2 or G3 in grace months 2 and 3; deny with T1 after grace.",
+      "target": "rules/decide.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 3,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB140",
+      "paragraph": "9000-RULE-ERROR",
+      "rule": "Returns R9 when dates are inconsistent.",
+      "target": "rules/decide.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 2,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB150",
+      "paragraph": "0000-MAIN",
+      "rule": "Runs for dependent suffixes 02 to 19 that are children.",
+      "target": "rules/dependentAgeOut.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB150",
+      "paragraph": "1000-CALC-AGE",
+      "rule": "Age in whole years on the DOS.",
+      "target": "rules/dependentAgeOut.ts",
+      "layers": [
+        "L6"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB150",
+      "paragraph": "2000-AGE-OUT-END-OF-MONTH",
+      "rule": "Coverage ends on the last day of the month the child turns 26, not on the birthday.",
+      "target": "rules/dependentAgeOut.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "ledgerRules": [
+        "L-014"
+      ],
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB150",
+      "paragraph": "3000-DISABLED-DEP-EXCEPTION",
+      "rule": "No age-out when the disabled-dependent flag is Y.",
+      "target": "rules/dependentAgeOut.ts",
+      "layers": [
+        "L1"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB900",
+      "paragraph": "0000-MAIN",
+      "rule": "Builds status, reason and the 271 benefit segment.",
+      "target": "response/buildResponse.ts",
+      "layers": [
+        "L0"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB900",
+      "paragraph": "1000-MAP-STATUS",
+      "rule": "Status A active, P pend, D deny, from 88-levels in ELGRSP.",
+      "target": "response/codes.ts",
+      "layers": [
+        "L5"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB900",
+      "paragraph": "2000-MAP-REASON",
+      "rule": "Two-character reason code from the deciding rule.",
+      "target": "response/codes.ts",
+      "layers": [
+        "L5"
+      ],
+      "stage": 5,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB900",
+      "paragraph": "3000-FORMAT-271-SEG",
+      "rule": "EB01 code: 1 active, 5 active pending investigation, 6 inactive.",
+      "target": "response/format271.ts",
+      "layers": [
+        "L0"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    },
+    {
+      "program": "ELGB900",
+      "paragraph": "9000-DEFAULT-CODE",
+      "rule": "Any unmapped case returns status P reason ZZ for manual review.",
+      "target": "response/codes.ts",
+      "layers": [
+        "L5"
+      ],
+      "stage": 4,
+      "g1": "D-01"
+    }
+  ]
+}

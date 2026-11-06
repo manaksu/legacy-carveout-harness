@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eligibility Carve-out Harness</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: operator console. Sticky masthead + view tabs; each view is a left-to-right reading of the carve-out, mainframe listing type for anything that came out of the COBOL repo. */
+:root{
+  --paper:#F2F3F0; --sheet:#FFFFFF; --ink:#15181A; --muted:#5C6360; --rule:#D6D9D3; --rule-soft:#E7E9E4;
+  --accent:#2B48C6; --accent-soft:#E5E9FA;
+  --legacy:#875709; --legacy-soft:#F5ECD8;
+  --ok:#2A774A; --ok-soft:#E2F0E7; --warn:#935E00; --warn-soft:#FAEFD7; --block:#AE3A2E; --block-soft:#F7E3E0; --human:#5E45A6; --human-soft:#EBE6F6;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0E1011; --sheet:#16191A; --ink:#E4E6E1; --muted:#939A95; --rule:#2A2F2E; --rule-soft:#202524;
+  --accent:#93A5FF; --accent-soft:#1D2446; --legacy:#DDB060; --legacy-soft:#2C2412;
+  --ok:#6DC793; --ok-soft:#14281C; --warn:#E3AE4B; --warn-soft:#2D2310; --block:#EE8175; --block-soft:#321916; --human:#B8A3F4; --human-soft:#241D3A;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E1011; --sheet:#16191A; --ink:#E4E6E1; --muted:#939A95; --rule:#2A2F2E; --rule-soft:#202524;
+  --accent:#93A5FF; --accent-soft:#1D2446; --legacy:#DDB060; --legacy-soft:#2C2412;
+  --ok:#6DC793; --ok-soft:#14281C; --warn:#E3AE4B; --warn-soft:#2D2310; --block:#EE8175; --block-soft:#321916; --human:#B8A3F4; --human-soft:#241D3A;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--sheet)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.005em}
+h1{font-size:30px;line-height:1.15}
+h2{font-size:20px;line-height:1.25}
+h3{font-size:15px;line-height:1.3}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.num{font-variant-numeric:tabular-nums}
+.label{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:68ch}
+a{color:var(--accent)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* masthead */
+.mast{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--sheet);border-bottom:1px solid var(--rule)}
+.mast-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-block:12px 8px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand b{font-family:var(--f-display);font-size:17px;font-weight:600}
+.brand span{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.mast-stats{display:flex;flex-wrap:wrap;gap:6px 18px;margin-left:auto}
+.mstat{display:flex;gap:6px;align-items:baseline;font-size:12.5px}
+.mstat .k{color:var(--muted)}
+.mstat .v{font-family:var(--f-mono);font-weight:500}
+nav.tabs{display:flex;flex-wrap:wrap;gap:2px}
+nav.tabs a{padding:8px 12px 9px;text-decoration:none;color:var(--muted);font-size:13.5px;border-bottom:2px solid transparent;margin-bottom:-1px}
+nav.tabs a:hover{color:var(--ink)}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:500}
+nav.tabs .count{font-family:var(--f-mono);font-size:11px;padding:0 5px;margin-left:5px;border-radius:3px;background:var(--human-soft);color:var(--human)}
+
+main{padding-block:28px 64px}
+section[data-view]{display:flex;flex-direction:column;gap:28px}
+.head{display:flex;flex-direction:column;gap:8px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media (max-width:860px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:18px 20px;min-width:0}
+.panel > .label{display:block;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:11px;padding:2px 7px;border-radius:3px;white-space:nowrap;line-height:1.5}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-ok{background:var(--ok-soft);color:var(--ok)}
+.c-warn{background:var(--warn-soft);color:var(--warn)}
+.c-block{background:var(--block-soft);color:var(--block)}
+.c-human{background:var(--human-soft);color:var(--human)}
+.c-acc{background:var(--accent-soft);color:var(--accent)}
+.c-legacy{background:var(--legacy-soft);color:var(--legacy)}
+.c-plain{background:var(--rule-soft);color:var(--muted)}
+.tag{font-family:var(--f-mono);font-size:11px;color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:1px 6px;white-space:nowrap}
+.cob{font-family:var(--f-mono);color:var(--legacy)}
+.ts{font-family:var(--f-mono);color:var(--accent)}
+
+/* phase rail */
+.rail{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border:1px solid var(--rule);border-radius:6px;background:var(--sheet);overflow:hidden}
+.ph{padding:14px 12px 12px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:6px;position:relative;min-width:0}
+.ph:last-child{border-right:0}
+.ph .n{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.ph .t{font-family:var(--f-display);font-weight:600;font-size:15px}
+.ph .s{font-size:12px;color:var(--muted);line-height:1.4}
+.ph .bar{height:4px;background:var(--rule-soft);border-radius:2px;overflow:hidden;margin-top:auto}
+.ph .bar i{display:block;height:100%;background:var(--accent)}
+.ph.done .bar i{background:var(--ok)}
+.ph.active{background:linear-gradient(var(--accent-soft),var(--accent-soft)) top/100% 3px no-repeat}
+.gate{position:absolute;right:-1px;top:10px;transform:translateX(50%);z-index:2;font-family:var(--f-mono);font-size:10px;background:var(--human);color:var(--sheet);padding:1px 5px;border-radius:3px}
+@media (max-width:860px){.rail{grid-template-columns:repeat(2,minmax(0,1fr))}.ph{border-bottom:1px solid var(--rule)}.gate{right:8px;transform:none}}
+
+/* lists and tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--sheet)}
+td{padding:10px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--rule-soft)}
+.item:first-of-type{border-top:0;padding-top:0}
+.item .id{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:1px}
+
+/* buttons */
+.btn{border:1px solid var(--rule);background:var(--sheet);border-radius:4px;padding:6px 12px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden;background:var(--sheet)}
+.seg button{border:0;background:transparent;padding:6px 11px;cursor:pointer;font-size:12.5px;border-right:1px solid var(--rule)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+select{border:1px solid var(--rule);background:var(--sheet);border-radius:4px;padding:6px 8px;font-size:13px}
+
+/* module view */
+.mod{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:20px}
+@media (max-width:860px){.mod{grid-template-columns:minmax(0,1fr)}}
+.prog{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:6px;background:var(--sheet);overflow:hidden}
+.prog button{all:unset;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:11px 14px;border-bottom:1px solid var(--rule-soft)}
+.prog button:last-child{border-bottom:0}
+.prog button:hover{background:var(--paper)}
+.prog button[aria-selected="true"]{background:var(--accent-soft)}
+.prog button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.prog .pn{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--legacy)}
+.prog .pd{font-size:12px;color:var(--muted);grid-column:1/-1}
+.pieces{display:flex;flex-wrap:wrap;gap:2px;grid-column:1/-1;margin-top:4px}
+.pc{width:12px;height:12px;border-radius:2px;background:var(--rule-soft)}
+.s0{background:var(--rule-soft)}
+.s1{background:color-mix(in srgb,var(--accent) 22%,var(--sheet))}
+.s2{background:color-mix(in srgb,var(--accent) 45%,var(--sheet))}
+.s3{background:color-mix(in srgb,var(--accent) 70%,var(--sheet))}
+.s4{background:var(--accent)}
+.s5{background:var(--ok)}
+.pc.blk{box-shadow:inset 0 0 0 2px var(--block)}
+.touch{display:flex;flex-wrap:wrap;gap:6px}
+
+/* seam diagram */
+.seam{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1.1fr);align-items:center;gap:0}
+.seam .box{border:1px solid var(--rule);border-radius:6px;padding:12px 14px;background:var(--sheet);min-width:0}
+.seam .arr{text-align:center;color:var(--muted);font-family:var(--f-mono)}
+.seam .dual{display:flex;flex-direction:column;gap:8px}
+@media (max-width:860px){.seam{grid-template-columns:minmax(0,1fr)}.seam .arr{transform:rotate(90deg);padding:4px 0}}
+
+.loop{display:flex;flex-wrap:wrap;align-items:stretch;gap:0}
+.loop .st{flex:1 1 140px;border:1px solid var(--rule);border-right:0;padding:12px 14px;background:var(--sheet);min-width:0}
+.loop .st:first-child{border-radius:6px 0 0 6px}
+.loop .st:last-child{border-right:1px solid var(--rule);border-radius:0 6px 6px 0}
+@media (max-width:860px){.loop .st{flex-basis:100%;border-right:1px solid var(--rule);border-bottom:0;border-radius:0!important}.loop .st:first-child{border-radius:6px 6px 0 0!important}.loop .st:last-child{border-bottom:1px solid var(--rule);border-radius:0 0 6px 6px!important}}
+
+/* run view */
+.trace td{font-family:var(--f-mono);font-size:12px}
+.trace td.step{color:var(--muted);width:32px}
+.trace .para{display:block;font-size:11px;margin-bottom:2px}
+.trace tr.cur td{background:var(--accent-soft)}
+.trace tr.pending td{opacity:.32}
+.trace tr.diff td.m{color:var(--block)}
+.trace tr.diff td.tsout{background:var(--block-soft)}
+.m{white-space:nowrap}
+.verdict{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:baseline}
+.big{font-family:var(--f-display);font-size:26px;font-weight:600}
+pre.code{margin:0;font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--paper);border:1px solid var(--rule-soft);border-radius:4px;padding:10px 12px;overflow-x:auto;white-space:pre}
+
+/* progress view */
+.trk-row{display:grid;grid-template-columns:150px minmax(0,1fr) 70px 70px 74px;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--rule-soft);cursor:pointer}
+.trk-row:hover{background:var(--paper)}
+.trk-row .pieces{grid-column:auto;margin:0}
+.trk-row .pc{width:14px;height:14px}
+.trk-detail{padding:4px 16px 14px 16px;border-bottom:1px solid var(--rule-soft);background:var(--paper)}
+.trk-detail table{font-size:12.5px}
+.trk-detail td{padding:6px 8px}
+@media (max-width:700px){.trk-row{grid-template-columns:minmax(0,1fr) 60px;}.trk-row .hide-sm{display:none}.trk-row .pieces{grid-column:1/-1;order:3}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.spark{width:100%;height:84px;display:block}
+
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filters button{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.ai{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 24px}
+@media (max-width:860px){.ai{grid-template-columns:minmax(0,1fr)}}
+ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.note{border-left:3px solid var(--human);padding:2px 0 2px 12px;border-radius:0}
+.toast{font-size:12.5px;color:var(--ok);font-family:var(--f-mono)}
+@media (prefers-reduced-motion:no-preference){.trace tr td{transition:opacity .2s,background .2s}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="mast-top">
+      <div class="brand"><b>Claims Harness</b><span>wave 1 · membership eligibility · CLMADJ00 → ELGB100</span></div>
+      <div class="mast-stats" id="mastStats"></div>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#overview">Overview</a>
+      <a href="#model">Harness model</a>
+      <a href="#module">Module blow-up</a>
+      <a href="#layers">Data layers</a>
+      <a href="#plan">Research plan<span class="count" id="tabCount"></span></a>
+      <a href="#run">Sample run</a>
+      <a href="#progress">Tracker</a>
+      <a href="#learn">Learning ledger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- OVERVIEW -->
+<section data-view="overview">
+  <div class="head">
+    <span class="label">Wave 1 of 8 · example data</span>
+    <h1>Membership eligibility carve-out</h1>
+    <p class="lede">The adjudication engine keeps calling <span class="cob">ELGB100</span>. The harness puts a routing seam at that CALL, breaks the COBOL behind it into units, and moves each unit to TypeScript only after its data is understood, its tests are captured, and its output matches the mainframe.</p>
+  </div>
+  <div class="rail" id="rail"></div>
+  <div class="grid2">
+    <div class="panel">
+      <span class="label">Needs a person</span>
+      <div id="needsPerson"></div>
+    </div>
+    <div class="panel stack">
+      <span class="label">Parity on golden set · build v0.4</span>
+      <div class="verdict"><span class="big num" id="parityBig"></span><span class="muted small">gate G2 needs 99.90% and every diff explained</span></div>
+      <svg class="spark" id="paritySpark" viewBox="0 0 400 84" preserveAspectRatio="none" aria-label="Parity rate across the last ten builds"></svg>
+      <div class="small muted" id="parityNote"></div>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="row" style="justify-content:space-between">
+      <h2>Ask the harness to review a function</h2>
+      <span class="small muted">Each function becomes its own wave once the one it depends on reaches shadow.</span>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Function</th><th>Seam in CLMADJ00</th><th class="r">Programs</th><th>Depends on</th><th>State</th><th></th></tr></thead>
+      <tbody id="backlog"></tbody>
+    </table></div>
+    <div class="toast" id="backlogToast" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- MODEL -->
+<section data-view="model" hidden>
+  <div class="head">
+    <span class="label">How the harness works</span>
+    <h1>One seam, eight phases, three human gates</h1>
+    <p class="lede">The harness reads left to right. It never rewrites the whole engine at once. It picks one CALL boundary, learns everything behind it, and only moves traffic after the new code has matched the old code on real claims.</p>
+  </div>
+
+  <div class="stack">
+    <h2>The seam</h2>
+    <div class="seam">
+      <div class="box"><span class="label">Caller · unchanged</span><div class="cob" style="margin-top:6px">CLMADJ00</div><div class="small muted">CALL 'ELGB100' USING ELGCOMM</div></div>
+      <div class="arr">→</div>
+      <div class="box"><span class="label">Routing seam · new</span><div class="ts" style="margin-top:6px">elig-router</div><div class="small muted">Same 312-byte COMMAREA in and out. Mode per segment: off, shadow, canary, primary.</div></div>
+      <div class="arr">→</div>
+      <div class="dual">
+        <div class="box"><span class="label">Legacy</span><div class="cob">ELGB100 → ELGB110…900</div><div class="small muted">Answers every claim until cutover.</div></div>
+        <div class="box"><span class="label">Modern</span><div class="ts">@claims/eligibility</div><div class="small muted">Runs on the same input. Its answer is compared, then later used.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <h2>Phases</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Phase</th><th>Agent</th><th>Reads</th><th>Produces</th><th>Exit</th></tr></thead>
+      <tbody id="phaseTable"></tbody>
+    </table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="stack">
+      <h2>Agents</h2>
+      <div class="tbl-wrap"><table><tbody id="agentTable"></tbody></table></div>
+    </div>
+    <div class="stack">
+      <h2>People and what only they decide</h2>
+      <div class="tbl-wrap"><table><tbody id="humanTable"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <h2>Test, review, learn, refine</h2>
+    <div class="loop" id="loop"></div>
+    <p class="small muted">The loop runs on every build. A diff never gets patched by hand in the TypeScript alone. It becomes a ledger rule, the converter is re-run for every unit the rule touches, and parity is measured again.</p>
+  </div>
+</section>
+
+<!-- MODULE -->
+<section data-view="module" hidden>
+  <div class="head">
+    <span class="label">Blown-up view</span>
+    <h1>What sits behind ELGB100</h1>
+    <p class="lede">Found by walking CALL, COPY, EXEC SQL and READ statements from the seam. Each paragraph is one unit; each unit gets a plain-language rule, a TypeScript target and a stage. Select a program to open it.</p>
+  </div>
+  <div class="legend" id="stageLegend"></div>
+  <div class="mod">
+    <div class="prog" role="tablist" aria-label="Programs" id="progList"></div>
+    <div class="stack" id="progDetail"></div>
+  </div>
+</section>
+
+<!-- LAYERS -->
+<section data-view="layers" hidden>
+  <div class="head">
+    <span class="label">Data layers</span>
+    <h1>Seven layers the harness has to cross</h1>
+    <p class="lede">Every unit touches one or more of these. A layer is resolved when the harness can read it during research, describe it in TypeScript types, and reach it at run time. Anything it cannot reach on its own becomes an item in the research plan.</p>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Layer</th><th>In the mainframe</th><th>What the harness found</th><th>TypeScript side</th><th>How it gets resolved</th></tr></thead>
+    <tbody id="layerTable"></tbody>
+  </table></div>
+</section>
+
+<!-- PLAN -->
+<section data-view="plan" hidden>
+  <div class="head">
+    <span class="label">Research phase</span>
+    <h1>Action plan before conversion</h1>
+    <p class="lede">Research ends when every item below is resolved or explicitly waived by its owner. Units blocked by an open item stay at the research stage; the rest of the module keeps moving.</p>
+  </div>
+  <div class="filters" id="planFilters"></div>
+  <div class="stack" id="planList"></div>
+</section>
+
+<!-- RUN -->
+<section data-view="run" hidden>
+  <div class="head">
+    <span class="label">Execution flow · masked sample claims</span>
+    <h1>Same claim, both engines, step by step</h1>
+    <p class="lede">The seam records what each COBOL paragraph produced and replays the same input through the TypeScript build. Reads from DB2 and VSAM replay the rows captured at the seam until research items R-01 and R-02 open live read paths.</p>
+  </div>
+  <div class="row">
+    <label class="label" for="sampleSel">Sample</label>
+    <select id="sampleSel"></select>
+    <span class="label" style="margin-left:8px">TS build</span>
+    <div class="seg" id="buildSeg"><button type="button" data-b="v03">v0.3</button><button type="button" data-b="v04">v0.4</button></div>
+    <button class="btn primary" id="replayBtn" type="button" style="margin-left:auto">Replay step by step</button>
+  </div>
+  <div class="grid2">
+    <div class="panel stack">
+      <span class="label">Input at the seam · ELGCOMM</span>
+      <pre class="code" id="inputBlock"></pre>
+    </div>
+    <div class="panel stack">
+      <span class="label">Result</span>
+      <div class="verdict" id="runVerdict"></div>
+      <p class="small" id="runExplain"></p>
+    </div>
+  </div>
+  <div class="tbl-wrap trace"><table>
+    <thead><tr><th>#</th><th>COBOL paragraph · output</th><th>TypeScript · output</th><th>Match</th></tr></thead>
+    <tbody id="traceBody"></tbody>
+  </table></div>
+</section>
+
+<!-- PROGRESS -->
+<section data-view="progress" hidden>
+  <div class="head">
+    <span class="label">Tracker</span>
+    <h1>Units by stage</h1>
+    <p class="lede">One square per paragraph, shaded by how far it has moved. Red outline means an open research item is holding it. Select a program row for its units.</p>
+  </div>
+  <div class="grid3" id="trkTotals"></div>
+  <div class="legend" id="trkLegend"></div>
+  <div class="tbl-wrap" id="trkList" style="overflow:hidden"></div>
+</section>
+
+<!-- LEARN -->
+<section data-view="learn" hidden>
+  <div class="head">
+    <span class="label">Learning ledger</span>
+    <h1>Rules the harness carries to the next function</h1>
+    <p class="lede">Each rule came from a research finding or a parity diff. Adopted rules feed the converter for every later wave, so the pricing or COB carve-out starts with what eligibility already taught it.</p>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Rule</th><th>What it says</th><th>Found by</th><th class="r">Units</th><th>Status</th></tr></thead>
+    <tbody id="ledgerTable"></tbody>
+  </table></div>
+</section>
+
+</main>
+
+<script>
+const STAGES=["Discovered","Researched","Tests harvested","Converted","Parity verified","In shadow"];
+
+const PROGRAMS=[
+ {id:"ELGB100",title:"Eligibility driver",kind:"CICS online · trans EL01",lines:2410,
+  touches:["ELGCOMM","ELGRSP","MBR_MASTER"],
+  paras:[
+   ["0000-MAINLINE","Entry point. Receives ELGCOMM from CLMADJ00 and runs the steps below in order.","api/eligibilityHandler.ts",5,"L0"],
+   ["1000-INIT-COMMAREA","Clears the response area to spaces and zero before any work.","api/initResponse.ts",5,"L0"],
+   ["1100-VALIDATE-REQUEST","Rejects the call with code E1 when DOS is not a valid CYYMMDD date or the member key is blank.","api/validateRequest.ts",4,"L6"],
+   ["2000-CALL-MEMBER-LOOKUP","Calls ELGB110 and stops with code M1 when no member is found.","api/eligibilityHandler.ts",4,"L1"],
+   ["3000-CALL-SPAN-RESOLVER","Calls ELGB120 to pick the coverage span for the date of service.","api/eligibilityHandler.ts",3,"L1"],
+   ["4000-CALL-PLAN-ATTACH","Calls ELGB130 to attach plan package and network tier to the chosen span.","api/eligibilityHandler.ts",3,"L1"],
+   ["5000-CALL-RULES","Runs retro-term, grace and age-out rules in that fixed order.","api/eligibilityHandler.ts",2,"L1"],
+   ["8000-BUILD-RESPONSE","Calls ELGB900 and moves the result back into ELGCOMM.","api/eligibilityHandler.ts",1,"L0"],
+   ["9000-ABEND-HANDLER","On SQL or file error, sets code X9 and writes the key to ELGHIST.","api/errors.ts",1,"L3"]]},
+ {id:"ELGB110",title:"Member lookup and cross-reference",kind:"Called subprogram",lines:1180,
+  touches:["MBRMAST","MBR_MASTER","MBRXREF.KSDS"],
+  paras:[
+   ["0000-MAIN","Chooses lookup by member ID or by alternate ID, based on REQ-KEY-TYPE.","member/resolveMember.ts",5,"L1"],
+   ["1000-LOOKUP-BY-MBR-ID","Reads MBR_MASTER by member ID and two-digit dependent suffix.","member/resolveMember.ts",5,"L2"],
+   ["1100-XREF-ALT-ID","Turns the card ID on the claim into a member ID through the MBRXREF keyed file.","adapters/memberXref.ts",1,"L3"],
+   ["1200-DEPENDENT-SUFFIX","Suffix 01 is the subscriber; 02 to 19 are dependents in enrollment order.","member/dependentSuffix.ts",4,"L1"],
+   ["1300-SSN-FALLBACK","When the card ID misses, retries by masked SSN plus DOB. Only for paper claims.","member/ssnFallback.ts",4,"L1"],
+   ["1400-MERGED-MEMBER-CHAIN","Follows up to 5 merge pointers when a member record was merged into another.","member/mergeChain.ts",4,"L2"],
+   ["9000-NOT-FOUND","Returns M1 and the last key tried.","member/resolveMember.ts",2,"L1"]]},
+ {id:"ELGB120",title:"Coverage span resolver",kind:"Called subprogram",lines:1960,
+  touches:["CVGSPAN","DATECONV","MBR_COVG_SPAN"],
+  paras:[
+   ["0000-MAIN","Loads all spans for the member, orders them, then picks the one covering the DOS.","coverage/resolveSpan.ts",4,"L1"],
+   ["1000-OPEN-SPAN-CURSOR","Declares the cursor over MBR_COVG_SPAN with WITH UR (uncommitted read).","adapters/db2Spans.ts",3,"L2"],
+   ["1100-FETCH-SPANS","Fetches up to 40 spans into a working-storage table.","adapters/db2Spans.ts",1,"L2"],
+   ["2000-SORT-SPANS","Sorts by effective date, then plan code. Plan code order follows EBCDIC: letters before digits.","coverage/sortSpans.ts",4,"L6"],
+   ["2100-MERGE-SPANS","Joins back-to-back spans on the same plan into one span.","coverage/mergeSpans.ts",3,"L1"],
+   ["2200-GAP-CHECK","Flags a gap of more than 63 days between spans for creditable-coverage reporting.","coverage/gapCheck.ts",3,"L1"],
+   ["2300-OPEN-END-DATE","Treats a term date of 9999999 or 99991231 as open-ended.","coverage/dates.ts",3,"L6"],
+   ["3000-FIND-DOS-SPAN","Takes the first span in sorted order where effective ≤ DOS ≤ term.","coverage/findSpanForDos.ts",4,"L1"],
+   ["3100-REINSTATEMENT","A reinstated span overrides a termed span with the same effective date.","coverage/reinstatement.ts",2,"L1"],
+   ["3200-VOID-SPAN-SKIP","Skips spans with status V (voided by 834 correction).","coverage/findSpanForDos.ts",2,"L4"],
+   ["4000-CLOSE-CURSOR","Closes the cursor.","adapters/db2Spans.ts",1,"L2"],
+   ["9000-SQL-ERROR","Maps SQLCODE to X9 and logs it.","adapters/db2Spans.ts",1,"L2"]]},
+ {id:"ELGB130",title:"Plan and benefit attachment",kind:"Called subprogram",lines:870,
+  touches:["GRPPLAN","GRP_PLAN_XREF","PLAN_BNFT_PKG"],
+  paras:[
+   ["0000-MAIN","Attaches group, plan package and network tier to the chosen span.","plan/attachPlan.ts",4,"L1"],
+   ["1000-GRP-PLAN-XREF","Finds the group's plan row valid on the DOS.","plan/attachPlan.ts",4,"L2"],
+   ["1100-PLAN-PKG-LOOKUP","Looks up the benefit package code for the plan.","plan/attachPlan.ts",4,"L5"],
+   ["2000-PRODUCT-LINE-CHECK","Sets product line: C commercial, X exchange, M Medicare Advantage.","plan/productLine.ts",3,"L5"],
+   ["2100-NETWORK-TIER","Sets network tier from the package; HMO packages require a PCP on file.","plan/networkTier.ts",3,"L5"],
+   ["9000-PLAN-NOT-FOUND","Returns P1 when no plan row is valid on the DOS.","plan/attachPlan.ts",2,"L1"]]},
+ {id:"ELGB140",title:"Retro-term and grace period",kind:"Called subprogram",lines:1040,
+  touches:["MBRMAST","DATECONV","MBR_MASTER"],
+  paras:[
+   ["0000-MAIN","Runs only when the chosen span was termed or no span covers the DOS.","rules/retroTerm.ts",4,"L1"],
+   ["1000-DETECT-RETRO-TERM","A term is retroactive when it was posted after its own term date.","rules/retroTerm.ts",4,"L4"],
+   ["1100-POSTED-VS-EFFECTIVE","Ignores a retro term posted within 3 business days. Not in any spec; waiting on SME.","rules/retroTerm.ts",1,"L1"],
+   ["2000-GRACE-ELIGIBLE","Grace applies only to product line X with an APTC subsidy flag.","rules/grace.ts",4,"L1"],
+   ["2100-APTC-GRACE-MONTH","Counts grace months from paid-through date: month 1 pays, months 2 and 3 pend.","rules/grace.ts",4,"L1"],
+   ["2200-PAID-THRU-CALC","Derives paid-through date from COMP-3 premium balance and monthly rate.","rules/paidThrough.ts",3,"L6"],
+   ["3000-PEND-OR-DENY","Pend with reason G2 or G3 in grace months 2 and 3; deny with T1 after grace.","rules/decide.ts",3,"L1"],
+   ["9000-RULE-ERROR","Returns R9 when dates are inconsistent.","rules/decide.ts",2,"L1"]]},
+ {id:"ELGB150",title:"Dependent age-out",kind:"Called subprogram",lines:520,
+  touches:["MBRMAST"],
+  paras:[
+   ["0000-MAIN","Runs for dependent suffixes 02 to 19 that are children.","rules/dependentAgeOut.ts",4,"L1"],
+   ["1000-CALC-AGE","Age in whole years on the DOS.","rules/dependentAgeOut.ts",4,"L6"],
+   ["2000-AGE-OUT-END-OF-MONTH","Coverage ends on the last day of the month the child turns 26, not on the birthday.","rules/dependentAgeOut.ts",4,"L1"],
+   ["3000-DISABLED-DEP-EXCEPTION","No age-out when the disabled-dependent flag is Y.","rules/dependentAgeOut.ts",4,"L1"]]},
+ {id:"ELGB900",title:"Response builder",kind:"Called subprogram",lines:410,
+  touches:["ELGRSP","ELGCOMM"],
+  paras:[
+   ["0000-MAIN","Builds status, reason and the 271 benefit segment.","response/buildResponse.ts",5,"L0"],
+   ["1000-MAP-STATUS","Status A active, P pend, D deny, from 88-levels in ELGRSP.","response/codes.ts",5,"L5"],
+   ["2000-MAP-REASON","Two-character reason code from the deciding rule.","response/codes.ts",5,"L5"],
+   ["3000-FORMAT-271-SEG","EB01 code: 1 active, 5 active pending investigation, 6 inactive.","response/format271.ts",4,"L0"],
+   ["9000-DEFAULT-CODE","Any unmapped case returns status P reason ZZ for manual review.","response/codes.ts",4,"L5"]]}
+];
+const DEFERRED={id:"ELGB160",title:"COB primacy indicator",paras:10,note:"Moves with the COB wave. ELGB100 still calls it on the legacy side."};
+const BLOCKS={"ELGB110:2":"R-02","ELGB120:2":"R-01","ELGB140:2":"R-03"};
+
+const LAYERS=[
+ {id:"L0",name:"Contract",mf:"ELGCOMM COMMAREA, 312 bytes, passed by CALL USING",found:"41 fields, 3 REDEFINES, 2 filler areas callers write into",ts:"EligibilityRequest / EligibilityResponse types plus a byte-exact codec",how:"Auto. Codec round-trips 1,284 captured COMMAREAs byte for byte.",st:"ok",items:[]},
+ {id:"L1",name:"Business rules",mf:"COBOL paragraphs, PERFORM THRU ranges, 88-level conditions",found:"51 paragraphs in scope, 1 rule with no spec",ts:"Pure functions, one module per rule family",how:"Auto extraction; a person signs off each rule in plain language.",st:"human",items:["R-03"]},
+ {id:"L2",name:"Relational data",mf:"DB2 tables MBR_MASTER, MBR_COVG_SPAN, GRP_PLAN_XREF, PLAN_BNFT_PKG",found:"14 embedded SQL statements, 2 cursors read WITH UR",ts:"Read-only adapter behind an interface; replica for tests",how:"API. Needs SELECT on a masked replica, then a read endpoint.",st:"human",items:["R-01","R-07"]},
+ {id:"L3",name:"Keyed files",mf:"VSAM KSDS MBRXREF (alt ID to member), ESDS ELGHIST (audit)",found:"No SQL path. Only CICS READ by key.",ts:"memberXref adapter; audit goes to an event log",how:"Human decision between a CICS web service and a nightly unload.",st:"block",items:["R-02"]},
+ {id:"L4",name:"Batch feeds",mf:"JCL ELGJ834 loads 834 enrollment nightly 01:30 to 03:10",found:"Writes MBR_MASTER and MBR_COVG_SPAN; voids and retro terms arrive here",ts:"Not migrated in wave 1. Freshness contract documented.",how:"Human decision on reads that overlap the load window.",st:"warn",items:["R-07"]},
+ {id:"L5",name:"Reference codes",mf:"88-levels in ELGRSP, product lines in GRPPLAN, PLAN_BNFT_PKG rows",found:"62 status and reason codes, 3 product lines",ts:"Generated enums with the COBOL value kept beside each name",how:"Auto. Generated from copybooks; diff on every copybook change.",st:"ok",items:[]},
+ {id:"L6",name:"Representation",mf:"EBCDIC, COMP-3 packed decimal, CYYMMDD dates, 9999999 open end, LOW-VALUES",found:"Missing copybook DATECONV, EBCDIC sort in span order, COMP-3 premiums",ts:"ebcdicCompare(), integer-cent money, PlainDate with null for open end",how:"Auto, each one now a ledger rule.",st:"ok",items:["R-04","R-05","R-06"]}
+];
+const ST={ok:["Resolved","c-ok"],human:["Needs a person","c-human"],block:["Blocked","c-block"],warn:["Decision pending","c-warn"],api:["API pending","c-acc"]};
+
+const ITEMS=[
+ {id:"R-01",title:"Read access to coverage spans for test harvesting",layer:"L2",owner:"Mainframe DBA",kind:"api",status:"human",
+  blocks:"ELGB120 1100-FETCH-SPANS",
+  why:"The harness can replay spans captured at the seam, but it needs to pull spans for any member to build edge-case tests (voids, reinstatements, 40-span members).",
+  steps:["DBA grants SELECT on masked replica schema ELGRPL to the harness service ID.","Harness calls the read endpoint below for each golden member and stores the rows with the test.","Harness re-runs harvesting for ELGB120 and moves 1100-FETCH-SPANS to tests harvested."],
+  api:"GET /elig-data/v1/members/{mbrId}/coverage-spans?asOf=2026-03-14\n  via z/OS Connect, read-only, masked replica ELGRPL\n  returns: [{ planCd, effDt, termDt, status, postedTs }]"},
+ {id:"R-02",title:"No query path into the MBRXREF keyed file",layer:"L3",owner:"Mainframe systems",kind:"human",status:"block",
+  blocks:"ELGB110 1100-XREF-ALT-ID",
+  why:"Card IDs on claims resolve to members only through VSAM. Nothing outside CICS can read it today.",
+  steps:["Option A: wrap a CICS READ in web service EL0X for run time (about 2 weeks of mainframe work).","Option B: nightly REPRO unload to a file the harness can load for tests (about 2 days).","Harness recommends B now for research and A before canary."],
+  api:"Option A: GET /elig-data/v1/xref/{altId}  →  { mbrId, sfx }\nOption B: REPRO INFILE(MBRXREF) OUTFILE(XREFUNL) nightly 03:30"},
+ {id:"R-03",title:"Undocumented rule in retro-term timing",layer:"L1",owner:"Eligibility SME",kind:"human",status:"human",
+  blocks:"ELGB140 1100-POSTED-VS-EFFECTIVE",
+  why:"COBOL ignores a retro term posted within 3 business days of its term date. No spec or ticket explains it. It changes the outcome for about 0.4% of termed members.",
+  steps:["Harness shows the SME the paragraph, the plain-language rule, and 12 golden claims it affects.","SME confirms it is intended, or marks it as a defect to keep for parity and fix after cutover.","Harness records the answer as a ledger rule and converts the unit."],
+  api:""},
+ {id:"R-04",title:"Copybook DATECONV missing from the repo",layer:"L6",owner:"Harness",kind:"auto",status:"ok",
+  blocks:"",why:"ELGB120 and ELGB140 COPY DATECONV, but the Git mirror never had it.",
+  steps:["Found in SYS2.COPYLIB through the Endevor listing.","Added to the repo mirror with its Endevor version stamp."],api:""},
+ {id:"R-05",title:"EBCDIC order in the span sort",layer:"L6",owner:"Harness",kind:"auto",status:"ok",
+  blocks:"",why:"Plan codes sort letters before digits on the mainframe. JavaScript sorts digits first, so overlapping spans picked a different plan.",
+  steps:["Found by parity diff on sample S3.","Added ebcdicCompare() and ledger rule L-013; re-converted 3 units."],api:""},
+ {id:"R-06",title:"COMP-3 premium balances",layer:"L6",owner:"Harness",kind:"auto",status:"ok",
+  blocks:"",why:"Paid-through dates come from packed-decimal premium balances. Floating point drifts by a cent.",
+  steps:["Decode COMP-3 to integer cents.","Ledger rule L-011 applies to every money field in later waves."],api:""},
+ {id:"R-07",title:"Uncommitted reads during the 834 load",layer:"L2 · L4",owner:"Solution architect",kind:"human",status:"warn",
+  blocks:"Gate G2",
+  why:"COBOL reads spans WITH UR, so a claim adjudicated during 01:30 to 03:10 can see a half-loaded 834. The replica only serves committed rows. 4 of the 5 open parity diffs come from this.",
+  steps:["Architect accepts read-committed as the new behavior, or asks for the load window to be fenced.","Harness marks the 4 diffs as explained under that decision.","Gate G2 re-evaluated."],api:""},
+ {id:"R-08",title:"Member data in golden records",layer:"All",owner:"Privacy officer",kind:"human",status:"ok",
+  blocks:"",why:"Golden records come from production claims.",
+  steps:["Masking spec approved 2026-10-28: deterministic tokens for IDs and names, dates shifted per member so intervals hold.","Harness refuses to store any record that fails the masking check."],api:""}
+];
+
+const BACKLOG=[
+ ["Membership eligibility","CALL 'ELGB100'",8,"",["Wave 1 active","c-acc"]],
+ ["Provider network status","CALL 'PNTB100'",6,"Membership eligibility",["Queued","c-plain"]],
+ ["Benefit accumulators","CALL 'ACCB200'",11,"Membership eligibility",["Queued","c-plain"]],
+ ["Coordination of benefits","CALL 'COBB100'",9,"Membership eligibility",["Queued","c-plain"]],
+ ["Claim edits (NCCI, MUE)","CALL 'EDTB300'",14,"",["Not started","c-plain"]],
+ ["Prior authorization match","CALL 'PAMB100'",5,"Membership eligibility",["Not started","c-plain"]],
+ ["Pricing and repricing","CALL 'PRCB500'",17,"Provider network status",["Not started","c-plain"]],
+ ["Payment and remittance","CALL 'PAYB800'",12,"Pricing and repricing",["Not started","c-plain"]]
+];
+
+const LEDGER=[
+ ["L-011","Decode COMP-3 money to integer cents. Never use floating point for amounts.","Research R-06",7,["Adopted","c-ok"]],
+ ["L-012","CYYMMDD with C=1 is 20YY. Term dates 9999999 and 99991231 mean open-ended and become null.","Research R-04",9,["Adopted","c-ok"]],
+ ["L-013","Any sort or comparison on alphanumeric keys from the mainframe uses ebcdicCompare().","Parity diff, sample S3",3,["Adopted","c-ok"]],
+ ["L-014","Dependent coverage ends on the last day of the month the child turns 26.","Parity diff, sample S1",1,["Adopted","c-ok"]],
+ ["L-015","PERFORM A THRU B with more than one paragraph converts to one function with early returns; fall-through is flagged for review.","Research, ELGB100",4,["Adopted","c-ok"]],
+ ["L-016","Reads WITH UR become read-committed on the replica. Diffs during the 834 window are expected.","Research R-07",2,["Proposed","c-warn"]],
+ ["L-017","First covering span wins when spans overlap. Kept for parity; the SME will be asked whether overlaps should exist at all.","Parity diff, sample S3",1,["Needs review","c-human"]]
+];
+
+const SAMPLES={
+ S1:{name:"S1 · Dependent in exchange grace period",
+  input:"REQ-TYPE      C          claim\nCLAIM-ID      CLM-2026-0004417\nALT-ID        XJH448291302\nDOS           1260314    CYYMMDD\nPROV-ID       4471\nGRP-TYPE      X          exchange, APTC",
+  steps:[
+   ["ELGB100","1100-VALIDATE-REQUEST","validateRequest()","DOS 2026-03-14 valid"],
+   ["ELGB110","1100-XREF-ALT-ID","resolveMember()","MBR 00482913 · SFX 02 · DOB 2000-03-02"],
+   ["ELGB120","1100-FETCH-SPANS","loadSpans()","A12 2024-01-01–2025-12-31 · B07 2026-01-01–2026-02-28"],
+   ["ELGB120","2000-SORT-SPANS","sortSpans()","A12, B07"],
+   ["ELGB120","3000-FIND-DOS-SPAN","findSpanForDos()","no covering span · last span B07 termed 2026-02-28"],
+   ["ELGB140","1000-DETECT-RETRO-TERM","detectRetroTerm()","posted 2026-04-02 > term 2026-02-28 · RETRO Y"],
+   ["ELGB140","2100-APTC-GRACE-MONTH","graceMonth()","paid thru 2026-01-31 · DOS in grace month 2"],
+   ["ELGB150","2000-AGE-OUT-END-OF-MONTH","dependentAgeOut()","turns 26 on 2026-03-02 · covered to 2026-03-31",{v03:"turns 26 on 2026-03-02 · aged out 2026-03-02"}],
+   ["ELGB140","3000-PEND-OR-DENY","decide()","STAT P · RSN G2",{v03:"STAT D · RSN AO"}],
+   ["ELGB900","3000-FORMAT-271-SEG","format271()","EB*5**30",{v03:"EB*6**30"}]],
+  explain:{v03:"v0.3 ends coverage on the 26th birthday. COBOL keeps the child covered to the end of that month, so the claim should pend for grace month 2, not deny. This diff created ledger rule L-014.",
+           v04:"Both engines pend the claim for exchange grace month 2. The age-out fix from L-014 is in this build."}},
+ S2:{name:"S2 · Active subscriber, commercial group",
+  input:"REQ-TYPE      C          claim\nCLAIM-ID      CLM-2026-0003102\nALT-ID        QPN100277401\nDOS           1260210    CYYMMDD\nPROV-ID       2290\nGRP-TYPE      C          commercial",
+  steps:[
+   ["ELGB100","1100-VALIDATE-REQUEST","validateRequest()","DOS 2026-02-10 valid"],
+   ["ELGB110","1100-XREF-ALT-ID","resolveMember()","MBR 00100277 · SFX 01 · subscriber"],
+   ["ELGB120","1100-FETCH-SPANS","loadSpans()","K30 2025-07-01–99991231"],
+   ["ELGB120","2300-OPEN-END-DATE","openEnd()","K30 term → open-ended"],
+   ["ELGB120","3000-FIND-DOS-SPAN","findSpanForDos()","K30"],
+   ["ELGB130","1100-PLAN-PKG-LOOKUP","attachPlan()","PKG PPO-2 · tier 1"],
+   ["ELGB140","0000-MAIN","retroTerm()","skipped · span not termed"],
+   ["ELGB150","0000-MAIN","dependentAgeOut()","skipped · subscriber"],
+   ["ELGB900","1000-MAP-STATUS","mapStatus()","STAT A · RSN 00"],
+   ["ELGB900","3000-FORMAT-271-SEG","format271()","EB*1**30**PPO-2"]],
+  explain:{v03:"Plain active member. Both builds match the mainframe on every step.",v04:"Plain active member. Both builds match the mainframe on every step."}},
+ S3:{name:"S3 · Overlapping spans after a plan change",
+  input:"REQ-TYPE      C          claim\nCLAIM-ID      CLM-2026-0000877\nALT-ID        RLD730018801\nDOS           1260110    CYYMMDD\nPROV-ID       5108\nGRP-TYPE      C          commercial",
+  steps:[
+   ["ELGB100","1100-VALIDATE-REQUEST","validateRequest()","DOS 2026-01-10 valid"],
+   ["ELGB110","1100-XREF-ALT-ID","resolveMember()","MBR 00730018 · SFX 01"],
+   ["ELGB120","1100-FETCH-SPANS","loadSpans()","9X1 2026-01-01–open · A12 2026-01-01–2026-01-15"],
+   ["ELGB120","2000-SORT-SPANS","sortSpans()","A12, 9X1   (EBCDIC: letters first)",{v03:"9X1, A12   (ASCII: digits first)"}],
+   ["ELGB120","3000-FIND-DOS-SPAN","findSpanForDos()","A12 (first covering span)",{v03:"9X1 (first covering span)"}],
+   ["ELGB130","1100-PLAN-PKG-LOOKUP","attachPlan()","PKG PPO-2 · tier 1",{v03:"PKG HMO-5 · PCP required"}],
+   ["ELGB140","0000-MAIN","retroTerm()","skipped · DOS inside span"],
+   ["ELGB900","1000-MAP-STATUS","mapStatus()","STAT A · RSN 00"],
+   ["ELGB900","3000-FORMAT-271-SEG","format271()","EB*1**30**PPO-2",{v03:"EB*1**30**HMO-5"}]],
+  explain:{v03:"Both answers say active, but v0.3 attaches the wrong plan because JavaScript sorted the plan codes in ASCII order. The claim would price against the HMO network. This diff created ledger rule L-013.",
+           v04:"Spans now sort in EBCDIC order and both engines attach PPO-2. Whether overlapping spans should exist is open as ledger item L-017."}}
+};
+
+const PARITY=[96.2,97.0,97.4,97.9,98.3,98.6,98.9,99.21,99.38,99.61];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chip=(t,c)=>`<span class="chip ${c}">${esc(t)}</span>`;
+
+function allUnits(){const u=[];PROGRAMS.forEach(p=>p.paras.forEach((q,i)=>u.push({p:p.id,i,stage:q[3],blk:BLOCKS[p.id+":"+i]})));return u}
+const units=allUnits();
+const atLeast=s=>units.filter(u=>u.stage>=s).length;
+const openHuman=ITEMS.filter(i=>i.status!=="ok");
+
+function mast(){
+  const pct=Math.round(atLeast(4)/units.length*100);
+  $("#mastStats").innerHTML=[["Units",`${units.length} in scope`],["Parity verified",`${atLeast(4)} · ${pct}%`],["In shadow",atLeast(5)],["Open items",openHuman.length]]
+   .map(([k,v])=>`<div class="mstat"><span class="k">${k}</span><span class="v num">${v}</span></div>`).join("");
+  $("#tabCount").textContent=openHuman.length;
+}
+
+function overview(){
+  const n=units.length;
+  const PH=[
+   ["Intake","Scope set from CALL seam",n,"done"],
+   ["Discover","8 programs · 6 copybooks · 4 tables · 2 VSAM · 1 JCL",n,"done"],
+   ["Research",`${openHuman.length} items open`,atLeast(1),"active","G1"],
+   ["Harvest tests","1,284 golden cases",atLeast(2),"active"],
+   ["Convert","TypeScript per unit",atLeast(3),"active"],
+   ["Verify","Parity against COBOL",atLeast(4),"active","G2"],
+   ["Shadow","Runs beside COBOL",atLeast(5),"active","G3"],
+   ["Cutover","Traffic moves by segment",0,"wait"]];
+  $("#rail").innerHTML=PH.map((p,i)=>`<div class="ph ${p[3]}">${p[4]?`<span class="gate" title="Human gate">${p[4]}</span>`:""}
+    <span class="n">${String(i+1).padStart(2,"0")}</span><span class="t">${p[0]}</span><span class="s">${esc(p[1])}</span>
+    <span class="s num">${p[2]} / ${n} units</span><span class="bar"><i style="width:${Math.round(p[2]/n*100)}%"></i></span></div>`).join("");
+
+  $("#needsPerson").innerHTML=openHuman.map(it=>`<div class="item"><span class="id">${it.id}</span>
+    <div><div style="font-weight:500">${esc(it.title)}</div><div class="small muted">${esc(it.owner)}${it.blocks?` · holds ${esc(it.blocks)}`:""}</div></div>
+    <div>${chip(ST[it.status][0],ST[it.status][1])}</div></div>`).join("")+
+    `<div style="margin-top:12px"><a href="#plan" class="small">Open the research plan</a></div>`;
+
+  const last=PARITY[PARITY.length-1];
+  $("#parityBig").textContent=last.toFixed(2)+"%";
+  $("#parityNote").innerHTML=`1,279 of 1,284 golden cases match. 4 open diffs trace to uncommitted reads during the 834 load (R-07). 1 is unexplained and assigned to the Verifier.`;
+  const W=400,H=84,lo=95.5,hi=100,x=i=>8+i*(W-16)/(PARITY.length-1),y=v=>H-8-(v-lo)/(hi-lo)*(H-16);
+  const pts=PARITY.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const gy=y(99.9).toFixed(1);
+  $("#paritySpark").innerHTML=`<line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="var(--human)" stroke-dasharray="3 3" stroke-width="1"/>
+   <text x="${W-4}" y="${(+gy-4)}" text-anchor="end" font-size="10" fill="var(--human)" font-family="IBM Plex Mono,monospace">G2 99.90</text>
+   <polygon points="${x(0)},${H} ${pts} ${x(PARITY.length-1)},${H}" fill="var(--accent-soft)"/>
+   <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+   <circle cx="${x(PARITY.length-1)}" cy="${y(last)}" r="3.2" fill="var(--accent)"/>`;
+
+  $("#backlog").innerHTML=BACKLOG.map((b,i)=>`<tr><td style="font-weight:500">${esc(b[0])}</td><td class="cob" style="font-size:12px">${esc(b[1])}</td>
+    <td class="r num">${b[2]}</td><td class="small muted">${esc(b[3]||"None")}</td><td>${chip(b[4][0],b[4][1])}</td>
+    <td class="r">${i===0?"":`<button class="btn" type="button" data-q="${i}">Queue research</button>`}</td></tr>`).join("");
+  $("#backlog").onclick=e=>{const b=e.target.closest("button[data-q]");if(!b)return;const f=BACKLOG[+b.dataset.q];
+    b.textContent="Queued";b.disabled=true;
+    $("#backlogToast").textContent=`Research queued for ${f[0]}. Discovery starts from ${f[1]}${f[3]?`; conversion waits until ${f[3]} reaches shadow`:""}.`};
+}
+
+function model(){
+  const P=[
+   ["Intake","Harness","A function name from a person","The CALL seam and the scope boundary","Scope confirmed by the owner"],
+   ["Discover","Cartographer","COBOL repo, Endevor listings, JCL","Call graph, copybooks, tables, files, jobs","Inventory complete; missing members fetched"],
+   ["Research","Archaeologist · Data steward","Each paragraph and each data touch","Plain-language rules, layer map, action items","G1: each rule signed off, each item resolved or waived"],
+   ["Harvest tests","Test harvester","Masked COMMAREAs and rows captured at the seam","Golden input/output pairs per unit","Every unit has cases for each branch it owns"],
+   ["Convert","Translator","Rules, copybook types, ledger","TypeScript module and unit tests","Compiles, unit tests green"],
+   ["Verify","Verifier","Golden set through both engines","Step-level diff report","G2: 99.90% parity and every diff explained"],
+   ["Shadow","Verifier","Live claims, COBOL answer still used","Daily diff report","G3: 30 days clean, release manager approves"],
+   ["Cutover","Router","Segment plan","Traffic moved by segment; COBOL kept as fallback","90 days without fallback use"]];
+  $("#phaseTable").innerHTML=P.map((r,i)=>`<tr><td><span class="mono muted">${String(i+1).padStart(2,"0")}</span> <b style="font-weight:500">${r[0]}</b></td>
+   <td>${r[1]}</td><td class="small">${r[2]}</td><td class="small">${r[3]}</td><td class="small">${r[4].startsWith("G")?`<span class="chip c-human">${r[4].slice(0,2)}</span> ${esc(r[4].slice(4))}`:esc(r[4])}</td></tr>`).join("");
+  const A=[["Cartographer","Walks CALL, COPY, EXEC SQL, READ and JCL DD statements to map the module."],
+   ["Archaeologist","Turns each paragraph into a rule a business person can read, and flags rules with no source."],
+   ["Data steward","Classifies every data touch into a layer and works out how to reach it."],
+   ["Test harvester","Captures masked inputs, outputs and rows at the seam and picks cases per branch."],
+   ["Translator","Writes TypeScript per unit from the rule, the copybook types and the ledger."],
+   ["Verifier","Runs both engines, diffs every step, and traces each diff to a cause."],
+   ["Librarian","Writes ledger rules from findings and diffs and re-queues the units they touch."]];
+  $("#agentTable").innerHTML=A.map(a=>`<tr><td style="font-weight:500;white-space:nowrap">${a[0]}</td><td class="small">${a[1]}</td></tr>`).join("");
+  const Hm=[["Eligibility SME","Whether an extracted rule is intended. Signs G1 per rule."],
+   ["Mainframe DBA and systems","Access to DB2 replicas and VSAM files."],
+   ["Solution architect","Accepted behavior changes, such as read isolation."],
+   ["Privacy officer","Masking spec for golden records."],
+   ["Release manager","G3 and the order segments move in."]];
+  $("#humanTable").innerHTML=Hm.map(a=>`<tr><td style="font-weight:500;white-space:nowrap">${a[0]}</td><td class="small">${a[1]}</td></tr>`).join("");
+  const L=[["Test","Golden cases run through both engines."],["Review","Verifier traces each diff to a step and a cause."],["Learn","Librarian writes or updates a ledger rule."],["Refine","Translator re-converts every unit the rule touches."],["Re-measure","Parity recomputed; gate checked."]];
+  $("#loop").innerHTML=L.map(l=>`<div class="st"><span class="label">${l[0]}</span><div class="small" style="margin-top:4px">${l[1]}</div></div>`).join("");
+}
+
+function legend(el){el.innerHTML=STAGES.map((s,i)=>`<span><i class="pc s${i}"></i>${s}</span>`).join("")+`<span><i class="pc s1 blk"></i>Held by research item</span>`}
+
+let selProg=0;
+function moduleView(){
+  legend($("#stageLegend"));
+  const list=$("#progList");
+  list.innerHTML=PROGRAMS.map((p,i)=>`<button role="tab" aria-selected="${i===selProg}" data-i="${i}">
+    <span class="pn">${p.id}</span><span class="small muted num">${p.lines.toLocaleString()} lines</span>
+    <span class="pd">${esc(p.title)}</span>
+    <span class="pieces">${p.paras.map((q,j)=>`<i class="pc s${q[3]}${BLOCKS[p.id+":"+j]?" blk":""}"></i>`).join("")}</span></button>`).join("")+
+    `<button role="tab" aria-selected="false" disabled style="cursor:default;opacity:.65"><span class="pn">${DEFERRED.id}</span><span class="small muted">deferred</span><span class="pd">${esc(DEFERRED.title)}. ${esc(DEFERRED.note)}</span></button>`;
+  list.onclick=e=>{const b=e.target.closest("button[data-i]");if(!b)return;selProg=+b.dataset.i;moduleView()};
+  const p=PROGRAMS[selProg];
+  $("#progDetail").innerHTML=`<div class="panel stack">
+    <div class="row" style="justify-content:space-between"><h2><span class="cob">${p.id}</span> ${esc(p.title)}</h2><span class="tag">${esc(p.kind)}</span></div>
+    <div class="row"><span class="label">Touches</span><div class="touch">${p.touches.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Paragraph</th><th>Rule in plain language</th><th>TypeScript target</th><th>Layer</th><th>Stage</th></tr></thead><tbody>
+   ${p.paras.map((q,j)=>{const b=BLOCKS[p.id+":"+j];return `<tr><td class="cob" style="font-size:12px;white-space:nowrap">${q[0]}</td><td class="small">${esc(q[1])}</td>
+     <td class="ts" style="font-size:12px">${q[2]}</td><td><span class="tag">${q[4]}</span></td>
+     <td style="white-space:nowrap"><i class="pc s${q[3]}" style="display:inline-block;vertical-align:-2px;margin-right:6px"></i><span class="small">${STAGES[q[3]]}</span>${b?`<div style="margin-top:4px">${chip("held by "+b,"c-block")}</div>`:""}</td></tr>`}).join("")}
+   </tbody></table></div>`;
+}
+
+function layers(){
+  $("#layerTable").innerHTML=LAYERS.map(l=>`<tr><td style="white-space:nowrap"><span class="mono muted">${l.id}</span> <b style="font-weight:500">${l.name}</b></td>
+   <td class="small cob" style="font-family:var(--f-body)">${esc(l.mf)}</td><td class="small">${esc(l.found)}</td><td class="small">${esc(l.ts)}</td>
+   <td class="small"><div style="margin-bottom:6px">${chip(ST[l.st][0],ST[l.st][1])}</div>${esc(l.how)}${l.items.length?`<div class="row" style="margin-top:6px">${l.items.map(i=>`<a class="tag" href="#plan" style="text-decoration:none">${i}</a>`).join("")}</div>`:""}</td></tr>`).join("");
+}
+
+let planFilter="open";
+function plan(){
+  const F=[["open","Open"],["human","Needs a person"],["api","API calls"],["ok","Resolved"],["all","All"]];
+  $("#planFilters").innerHTML=F.map(f=>`<button type="button" data-f="${f[0]}" aria-pressed="${planFilter===f[0]}">${f[1]}</button>`).join("");
+  $("#planFilters").onclick=e=>{const b=e.target.closest("button");if(!b)return;planFilter=b.dataset.f;plan()};
+  const show=ITEMS.filter(i=>planFilter==="all"||(planFilter==="open"&&i.status!=="ok")||(planFilter==="ok"&&i.status==="ok")||
+    (planFilter==="human"&&i.status!=="ok"&&i.owner!=="Harness")||(planFilter==="api"&&i.api));
+  $("#planList").innerHTML=show.map(it=>`<div class="panel stack">
+    <div class="row" style="justify-content:space-between;gap:10px"><div class="row"><span class="mono muted">${it.id}</span><h3>${esc(it.title)}</h3></div>${chip(ST[it.status][0],ST[it.status][1])}</div>
+    <div class="row small muted"><span>Layer ${esc(it.layer)}</span><span>·</span><span>Owner: ${esc(it.owner)}</span>${it.blocks?`<span>·</span><span>Holds ${esc(it.blocks)}</span>`:""}</div>
+    <div class="ai"><div class="stack"><p class="small">${esc(it.why)}</p><ol class="steps small">${it.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>
+    ${it.api?`<div class="stack"><span class="label">${it.kind==="api"?"API call the harness will make":"Options"}</span><pre class="code">${esc(it.api)}</pre></div>`:`<div></div>`}</div></div>`).join("")||`<p class="muted">Nothing in this filter.</p>`;
+}
+
+let sample="S1",build="v04",playing=null,cursor=-1;
+function runView(){
+  const sel=$("#sampleSel");
+  if(!sel.options.length){sel.innerHTML=Object.entries(SAMPLES).map(([k,s])=>`<option value="${k}">${esc(s.name)}</option>`).join("");
+    sel.onchange=()=>{sample=sel.value;stop();drawRun()};
+    $("#buildSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;build=b.dataset.b;stop();drawRun()};
+    $("#replayBtn").onclick=replay;}
+  sel.value=sample;
+  drawRun();
+}
+function tsOut(s){return s[4]&&s[4][build]?s[4][build]:s[3]}
+function drawRun(){
+  document.querySelectorAll("#buildSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.b===build));
+  const S=SAMPLES[sample];$("#inputBlock").textContent=S.input;
+  const rows=S.steps.map((s,i)=>{const t=tsOut(s),diff=t!==s[3];
+    const st=cursor<0?"":i<cursor?"":i===cursor?"cur":"pending";
+    return `<tr class="${diff?"diff":""} ${st}"><td class="step num">${i+1}</td>
+     <td><span class="para cob">${s[0]} ${s[1]}</span>${esc(s[3])}</td>
+     <td class="tsout"><span class="para ts">${s[2]}</span>${esc(t)}</td>
+     <td class="m">${diff?"≠ diff":"= match"}</td></tr>`});
+  $("#traceBody").innerHTML=rows.join("");
+  const diffs=S.steps.filter(s=>tsOut(s)!==s[3]).length, first=S.steps.findIndex(s=>tsOut(s)!==s[3]);
+  $("#runVerdict").innerHTML=diffs?`<span class="big" style="color:var(--block)">${diffs} of ${S.steps.length} steps differ</span>${chip("first at step "+(first+1),"c-block")}`
+    :`<span class="big" style="color:var(--ok)">${S.steps.length} of ${S.steps.length} steps match</span>${chip("parity","c-ok")}`;
+  $("#runExplain").textContent=S.explain[build];
+}
+function stop(){if(playing){clearInterval(playing);playing=null}cursor=-1;$("#replayBtn").textContent="Replay step by step"}
+function replay(){
+  if(playing){stop();drawRun();return}
+  const n=SAMPLES[sample].steps.length;cursor=0;drawRun();$("#replayBtn").textContent="Stop";
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  playing=setInterval(()=>{cursor++;if(cursor>=n){stop();drawRun();return}drawRun()},reduce?250:700);
+}
+
+const open=new Set();
+function progress(){
+  legend($("#trkLegend"));
+  const n=units.length;
+  $("#trkTotals").innerHTML=[["Parity verified",atLeast(4),`of ${n} units`],["Held by research",Object.keys(BLOCKS).length,"units waiting on people"],["Golden cases","1,284","captured at the seam, masked"]]
+   .map(t=>`<div class="panel"><span class="label">${t[0]}</span><div class="big num" style="margin-top:6px">${t[1]}</div><div class="small muted">${t[2]}</div></div>`).join("");
+  $("#trkList").innerHTML=`<div class="trk-row" style="cursor:default;background:var(--sheet)"><span class="label">Program</span><span class="label">Units</span><span class="label hide-sm">Converted</span><span class="label hide-sm">Verified</span><span class="label" style="text-align:right">Held</span></div>`+
+   PROGRAMS.map((p,pi)=>{const conv=p.paras.filter(q=>q[3]>=3).length,ver=p.paras.filter(q=>q[3]>=4).length,held=p.paras.filter((q,j)=>BLOCKS[p.id+":"+j]).length;
+    return `<div class="trk-row" role="button" tabindex="0" aria-expanded="${open.has(pi)}" data-pi="${pi}">
+     <span><span class="cob">${p.id}</span><div class="small muted">${esc(p.title)}</div></span>
+     <span class="pieces">${p.paras.map((q,j)=>`<i class="pc s${q[3]}${BLOCKS[p.id+":"+j]?" blk":""}" title="${q[0]} · ${STAGES[q[3]]}"></i>`).join("")}</span>
+     <span class="num small hide-sm">${conv} / ${p.paras.length}</span><span class="num small hide-sm">${ver} / ${p.paras.length}</span>
+     <span style="text-align:right">${held?chip(held+" held","c-block"):`<span class="small muted">none</span>`}</span></div>`+
+     (open.has(pi)?`<div class="trk-detail"><div class="tbl-wrap"><table><tbody>${p.paras.map((q,j)=>{const b=BLOCKS[p.id+":"+j];
+       return `<tr><td class="cob" style="font-size:12px">${q[0]}</td><td class="ts" style="font-size:12px">${q[2]}</td><td class="small" style="white-space:nowrap"><i class="pc s${q[3]}" style="display:inline-block;vertical-align:-2px;margin-right:6px"></i>${STAGES[q[3]]}</td><td>${b?chip(b,"c-block"):""}</td></tr>`}).join("")}</tbody></table></div></div>`:"")}).join("");
+  const toggle=el=>{const pi=+el.dataset.pi;open.has(pi)?open.delete(pi):open.add(pi);progress()};
+  $("#trkList").onclick=e=>{const r=e.target.closest(".trk-row[data-pi]");if(r)toggle(r)};
+  $("#trkList").onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".trk-row[data-pi]")){e.preventDefault();toggle(e.target)}};
+}
+
+function learn(){
+  $("#ledgerTable").innerHTML=LEDGER.map(l=>`<tr><td class="mono" style="white-space:nowrap">${l[0]}</td><td class="small">${esc(l[1])}</td><td class="small muted">${esc(l[2])}</td><td class="r num">${l[3]}</td><td>${chip(l[4][0],l[4][1])}</td></tr>`).join("");
+}
+
+const VIEWS={overview,model,module:moduleView,layers,plan,run:runView,progress,learn};
+function route(){
+  const v=(location.hash||"#overview").slice(1);const view=VIEWS[v]?v:"overview";
+  document.querySelectorAll("section[data-view]").forEach(s=>s.hidden=s.dataset.view!==view);
+  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.getAttribute("href")==="#"+view)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+  if(view!=="run")stop();
+  VIEWS[view]();
+}
+mast();
+window.addEventListener("hashchange",()=>{route();window.scrollTo(0,0)});
+route();
+</script>
+</body>
+</html>

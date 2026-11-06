@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Wave units",
+  "type": "object",
+  "required": ["wave", "seam", "units"],
+  "properties": {
+    "wave": { "type": "string", "description": "Folder name, e.g. 01-eligibility" },
+    "seam": { "type": "string", "description": "e.g. CLMADJ00 -> CALL 'ELGB100' USING ELGCOMM" },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["program", "paragraph", "rule", "target", "layers", "stage"],
+        "properties": {
+          "program": { "type": "string" },
+          "paragraph": { "type": "string", "description": "Paragraph name, or FIRST THRU LAST for a range" },
+          "rule": { "type": "string", "description": "Plain-language rule from research" },
+          "target": { "type": "string", "description": "TypeScript file the unit becomes" },
+          "layers": { "type": "array", "items": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5", "L6"] } },
+          "stage": { "type": "integer", "minimum": 0, "maximum": 5, "description": "0 discovered, 1 researched, 2 tests harvested, 3 converted, 4 parity verified, 5 in shadow" },
+          "heldBy": { "type": "array", "items": { "type": "string", "pattern": "^R-\\d+$" } },
+          "ledgerRules": { "type": "array", "items": { "type": "string", "pattern": "^L-\\d+$" } },
+          "g1": { "type": "string", "description": "Decision ID of the G1 sign-off for this unit" }
+        }
+      }
+    }
+  }
+}
